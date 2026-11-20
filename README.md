@@ -6,7 +6,7 @@
 
 启航训练营经营分析组服务四个线上/线下班级，每天收到班主任的 `启航_班级日报_20261115.xlsx`。原流程由分析员在工作簿计算实到率、结课达成率、退款占比，再把数字抄入经营会纪要。痛点是分子分母的过滤范围不一致、修改公式后旧结论失去依据、数据更正与口径变化无法分清。本项目接收上游班级日事实，替代口径登记/试算/差异解释，给下游经营负责人提供冻结依据。
 
-三个业务实体：指标定义Metric（代码+版本唯一）、班级日事实Fact（班级+日期唯一）、试算签核快照Snapshot。四页是口径目录、事实校验、口径试算和签核历史；另有登录。后台worker真实计算，签核锁定口径与意见，后续事实修改不改变历史快照。
+三个业务实体：指标定义Metric（代码+版本唯一）、班级日事实Fact（班级+日期唯一）、试算签核快照Snapshot；另有退场清理任务Cleanup（班级唯一）。五页是口径目录、事实校验、口径试算、签核历史和班级退场；另有登录。后台worker真实计算，签核锁定口径与意见，后续事实修改不改变历史快照。
 
 |角色|权限|典型动作|
 |---|---|---|
@@ -46,6 +46,10 @@ docker compose exec -T backend python -m scripts.seed_demo
 
 签核需要已成功、非undefined、业务解释至少8字且口径仍与试算一致；试算后修订口径必须重算。签核后锁定口径版本和意见，事实更正不改旧快照。已有冻结版本可再次以新事实试算，但仍保留各次输入。
 
+## 班级退场清理
+
+合作班停办后在班级退场页预览影响（日报条数、涉及副本及签核状态），由admin填写至少8字清理说明发起清理。worker逐副本清除该班在冻结事实与按班分组中的原始记录和班级标识，再删除其日报；历史分子、分母与比值保留冻结值，副本附清理说明，旧签核数字仍可解释，其他班级不变。任务由queued进入done，每副本单事务提交，worker重启自动接续，失败任务列出未清除副本ID、重试从断点继续且不重复扣减。清理期间（含失败待重试）该班禁止录入日报、不再纳入新试算，涉及该班的快照完成前不开放签核与下载；worker计算时同样过滤退场班级，已清除记录不被晚完成任务写回。每班仅一个清理任务，队列不可用时任务置failed可重试。
+
 ## 工程、本地开发与范围
 
 |层|技术|
@@ -61,4 +65,4 @@ backend等待db/redis健康，worker再等backend，frontend等backend；恰好�
 
 目录按backend/src的routes/controllers/services/models/schemas/middlewares/config/utils及frontend/src的api/stores/pages/components/hooks/utils/constants/types/router拆分。共享表格、字段、状态标签；表单hooks与HTML转义；请求ID/安全头中间件、业务审计和全局错误处理。枚举ROLES/STATES/MODES/APPROVALS/FIELDS位于后端constants/enums.py、schemas/business.py和前端constants/enums.js。ORM建初表，migrations/001_initial.sql保留实际DDL；无在线版本迁移执行器。
 
-小型范围：逐条表单/API录入，无Excel批导、删除、分页或跨指标引用；单worker，启动恢复待处理任务。班级日事实是人次，不能解释为去重学员留存。签核只在站内，不外发邮件/电子签章。Google Fonts依赖网络，离线回退serif/sans-serif。测试证据在 `../../test-artifacts/gb-3111/TESTING.md`，源码无截图/日志。MIT License见LICENSE。
+小型范围：逐条表单/API录入，无Excel批导、分页或跨指标引用；删除仅限班级退场清理；单worker，启动恢复待处理试算与清理任务。班级日事实是人次，不能解释为去重学员留存。签核只在站内，不外发邮件/电子签章。Google Fonts依赖网络，离线回退serif/sans-serif。测试证据在 `../../test-artifacts/gb-3111/TESTING.md`，源码无截图/日志。MIT License见LICENSE。

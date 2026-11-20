@@ -15,3 +15,6 @@ class Snapshot(Base):
 class Audit(Base):
  __tablename__='audits'
  id=Column(Integer,primary_key=True);actor=Column(String(100));action=Column(String(200));created=Column(String(40))
+class Cleanup(Base):
+ __tablename__='cleanups'
+ id=Column(Integer,primary_key=True);class_code=Column(String(50),unique=True,nullable=False);state=Column(String(20),default='queued');note=Column(Text,default='');facts_total=Column(Integer,default=0);facts_removed=Column(Integer,default=0);snapshots_total=Column(Integer,default=0);snapshots_done=Column(Integer,default=0);records_removed=Column(Integer,default=0);remaining=Column(JSON,default=list);error=Column(Text,default='');created_by=Column(String(100),default='');created=Column(String(40),default='');finished=Column(String(40),default='')

@@ -38,3 +38,6 @@ class RunInput(BaseModel):
   if self.date_from>self.date_to:raise ValueError('开始日不得晚于结束日')
   return self
 class NoteInput(BaseModel):note:str=Field(min_length=8,max_length=2000)
+class CleanupInput(BaseModel):
+ class_code:str=Field(min_length=1,max_length=50)
+ note:str=Field(min_length=8,max_length=2000)

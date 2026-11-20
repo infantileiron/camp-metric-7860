@@ -1,6 +1,6 @@
 from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
-from src.models.entities import Metric,Fact
+from src.models.entities import Metric,Fact,Cleanup
 
 def save_metric(s,data,i=None):
  r=s.get(Metric,i) if i else Metric()
@@ -13,8 +13,10 @@ def save_metric(s,data,i=None):
  return r
 
 def save_fact(s,data,i=None):
+ retired={c.class_code for c in s.query(Cleanup).all()}
  r=s.get(Fact,i) if i else Fact()
  if not r:raise HTTPException(404,'班级日事实不存在')
+ if data.class_code in retired or (i and r.class_code in retired):raise HTTPException(409,'班级已进入退场清理，禁止录入或修订日报')
  for k,v in data.model_dump(mode='json').items():setattr(r,k,v)
  s.add(r)
  try:s.commit()
